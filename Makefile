@@ -46,11 +46,11 @@ endif
 # C-specific warnings
 CWARNINGS := $(WARNINGS)
 # warn about fn() instead of fn(void)
-CWARNINGS += -Wstrict-prototypes
+CWARNINGS += -Werror=strict-prototypes
 # this probably should be enabled only in bigger projects
 #CWARNINGS += -Wmissing-prototypes
 
-# old standards (ANSI C, ANSI C++)
+# standards (ANSI C, ANSI C++)
 CFLAGS ?= $(CWARNINGS) -std=c11 -O2
 CXXFLAGS ?= $(WARNINGS) -std=c++14 -O2
 # for future use if needed

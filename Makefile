@@ -56,6 +56,7 @@ CXXFLAGS ?= $(WARNINGS) -std=c++14 -O2
 # for future use if needed
 DEPFLAGS ?=
 LDFLAGS ?= -lm
+LDFLAGS += -s
 
 ##########
 
@@ -79,6 +80,18 @@ ifndef VERBOSE
 .SILENT: ;
 endif
 
+# template for inline assembler
+define INCBIN
+  .section @file@, "a"
+  .global @sym@_start
+@sym@_start:
+  .incbin "@file@"
+  .global @sym@_end
+@sym@_end:
+
+endef
+export INCBIN
+
 # default target
 .PHONY: all
 all: $(EXE) ## build executable
@@ -90,29 +103,34 @@ run: $(EXE) ## run program
 .PHONY: debug
 debug: CFLAGS := $(filter-out -O2,$(CFLAGS)) -D_DEBUG -g
 debug: CXXFLAGS := $(filter-out -O2,$(CXXFLAGS)) -D_DEBUG -g
+debug: LDFLAGS := $(filter-out -s,$(LDFLAGS))
 debug: $(EXE) ## build with debug enabled
 
 .PHONY: debugrun
 debugrun: debug run ## run debug version
 
+# link
 $(EXE): $(OBJ)
 	$(COLOR)
 	echo "Link $^ -> $@"
 	$(RESET)
-	$(CC) $(LDFLAGS) -o $@ $(OBJ)
+	$(CC) -Wl,--as-needed -o $@ $(OBJ) $(LDFLAGS)
 
+# compile
 $(OBJDIR)/%.c.o: $(DEPDIR)/%.c.d
 	@$(COLOR)
 	echo "Compile $(SRCDIR)/$*.c -> $(OBJDIR)/$*.c.o"
 	@$(RESET)
 	$(CC) $(CFLAGS) -c -o $@ $*.c
 
+# compile
 $(OBJDIR)/%.cpp.o: $(DEPDIR)/%.cpp.d
 	@$(COLOR)
 	echo "Compile $(SRCDIR)/$*.cpp -> $(OBJDIR)/$*.cpp.o"
 	@$(RESET)
 	$(CXX) $(CXXFLAGS) -c -o $@ $*.cpp
 
+# build dependecies list
 $(DEPDIR)/%.c.d: $(SRCDIR)/%.c
 	@$(COLOR)
 	echo "Dependencies $(SRCDIR)/$*.c -> $(DEPDIR)/$*.c.d"
@@ -120,6 +138,7 @@ $(DEPDIR)/%.c.d: $(SRCDIR)/%.c
 	$(CC) $(DEPFLAGS) -MM -MT '$$(OBJDIR)/$*.c.o' -MF $@ $<
 	sed -i 's,^\([^:]\+.o\):,\1 $$(DEPDIR)/$*.c.d:,' $@
 
+# build dependecies list
 $(DEPDIR)/%.cpp.d: $(SRCDIR)/%.cpp
 	@$(COLOR)
 	echo "Dependencies $(SRCDIR)/$*.cpp -> $(DEPDIR)/$*.cpp.d"
@@ -143,6 +162,13 @@ $(OBJDIR)/.keepme:
 $(DEPDIR)/.keepme:
 	-$(MKDIR) $(DEPDIR)
 	touch $@
+
+# create binary blobs for other files
+$(OBJDIR)/%.o: $(SRCDIR)/% # $(SRCDIR)/%.h
+	@$(COLOR)
+	echo "Other file $(SRCDIR)/$* -> $(OBJDIR)/$*.o"
+	@$(RESET)
+	echo "$$INCBIN" | sed -e 's/@sym@/$(subst .,_,$*)/' -e 's/@file@/$</' | gcc -x assembler-with-cpp - -c -o $@
 
 # delete stuff
 .PHONY: clean

@@ -47,3 +47,5 @@
 --dont-format-comments
 
 --indent-label0
+
+-T UChar

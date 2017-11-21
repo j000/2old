@@ -6,9 +6,12 @@
 # unignore files with extensions
 !*.*
 
-# ignore build dirs
+# ignore default build dirs
 .depdir
 .objdir
+
+# ignore hidden files
+.*
 
 # ignore backups
 *~

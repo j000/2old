@@ -8,10 +8,10 @@
 --line-length80
 --preprocessor-indentation2
 --line-comments-indentation0
---declaration-indentation0
+--declaration-indentation1
 --declaration-comment-column0
 --else-endif-column0
---comment-indentation30
+--comment-indentation41
 --parameter-indentation0
 --preserve-mtime
 
@@ -21,6 +21,7 @@
 --blank-lines-after-procedures
 --break-before-boolean-operator
 --no-blank-lines-after-commas
+--dont-break-function-decl-args-end
 
 --braces-on-if-line
 --braces-on-func-def-line

@@ -51,8 +51,8 @@ CWARNINGS += -Werror=strict-prototypes
 #CWARNINGS += -Wmissing-prototypes
 
 # standards (ANSI C, ANSI C++)
-CFLAGS ?= $(CWARNINGS) -std=c11 -O2
-CXXFLAGS ?= $(WARNINGS) -std=c++14 -O2
+CFLAGS ?= $(CWARNINGS) -std=c11 -O2 -fstack-protector-strong
+CXXFLAGS ?= $(WARNINGS) -std=c++14 -O2 -fstack-protector-strong
 # for future use if needed
 DEPFLAGS ?=
 LDFLAGS ?= -lm
@@ -121,14 +121,14 @@ $(OBJDIR)/%.c.o: $(DEPDIR)/%.c.d
 	@$(COLOR)
 	echo "Compile $(SRCDIR)/$*.c -> $(OBJDIR)/$*.c.o"
 	@$(RESET)
-	$(CC) $(CFLAGS) -c -o $@ $*.c
+	$(CC) $(CFLAGS) -c -o $@ $(SRCDIR)/$*.c
 
 # compile
 $(OBJDIR)/%.cpp.o: $(DEPDIR)/%.cpp.d
 	@$(COLOR)
 	echo "Compile $(SRCDIR)/$*.cpp -> $(OBJDIR)/$*.cpp.o"
 	@$(RESET)
-	$(CXX) $(CXXFLAGS) -c -o $@ $*.cpp
+	$(CXX) $(CXXFLAGS) -c -o $@ $(SRCDIR)/$*.cpp
 
 # build dependecies list
 $(DEPDIR)/%.c.d: $(SRCDIR)/%.c
@@ -142,6 +142,7 @@ $(DEPDIR)/%.c.d: $(SRCDIR)/%.c
 $(DEPDIR)/%.cpp.d: $(SRCDIR)/%.cpp
 	@$(COLOR)
 	echo "Dependencies $(SRCDIR)/$*.cpp -> $(DEPDIR)/$*.cpp.d"
+	echo "Dependencies $(SRCDIR)/$*.cpp -> $@"
 	@$(RESET)
 	$(CXX) $(DEPFLAGS) -MM -MT '$$(OBJDIR)/$*.cpp.o' -MF $@ $<
 	sed -i 's,^\([^:]\+.o\):,\1 $$(DEPDIR)/$*.c.d:,' $@
@@ -150,21 +151,19 @@ $(DEPDIR)/%.cpp.d: $(SRCDIR)/%.cpp
 -include $(wildcard $(DEP))
 
 # depend on directory
-$(OBJ): | $(OBJDIR)/.keepme
-$(DEP): | $(DEPDIR)/.keepme
+$(OBJ): | $(OBJDIR)
+$(DEP): | $(DEPDIR)
 
 # create directory
-$(OBJDIR)/.keepme:
+$(OBJDIR):
 	-$(MKDIR) $(OBJDIR)
-	touch $@
 
 # create directory
-$(DEPDIR)/.keepme:
+$(DEPDIR):
 	-$(MKDIR) $(DEPDIR)
-	touch $@
 
 # create binary blobs for other files
-$(OBJDIR)/%.o: $(SRCDIR)/% # $(SRCDIR)/%.h
+$(OBJDIR)/%.o: $(SRCDIR)/%
 	@$(COLOR)
 	echo "Other file $(SRCDIR)/$* -> $(OBJDIR)/$*.o"
 	@$(RESET)
@@ -182,12 +181,10 @@ mostlyclean: ## delete everything created, leave executable
 	@$(RESET)
 ifneq ($(wildcard $(OBJDIR)),)
 	-$(RM) $(OBJ)
-	-$(RM) $(OBJDIR)/.keepme
 	-$(RMDIR) $(OBJDIR)
 endif
 ifneq ($(wildcard $(DEPDIR)),)
 	-$(RM) $(DEP)
-	-$(RM) $(DEPDIR)/.keepme
 	-$(RMDIR) $(DEPDIR)
 endif
 

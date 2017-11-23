@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### Added
+- Initial ternary search tree implementation: insert, search. With conditional rotations (www.bcs.org/upload/pdf/oommen.pdf).
 - Editing and formatting stuff `.editorconfig`, `.indent.pro`, `.uncrustify.cfg`.
 - Initial stuff: `Makefile`, `.gitignore`.
 

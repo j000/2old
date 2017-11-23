@@ -1,4 +1,4 @@
-SRC ?= main.c
+SRC ?= main.c ternary_search_tree.c
 
 SRCDIR ?= .
 OBJDIR ?= .objdir

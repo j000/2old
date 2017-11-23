@@ -75,6 +75,12 @@ DEP := $(addprefix $(DEPDIR)/, \
 	$(addsuffix .d, $(SRC)) \
 )
 
+STYLE := $(filter %.c %.h %.cpp %.hpp,$(SRC))
+
+STYLED := $(addprefix $(DEPDIR)/, \
+	$(addsuffix .styled, $(STYLE)) \
+)
+
 # be silent unless VERBOSE
 ifndef VERBOSE
 .SILENT: ;
@@ -108,6 +114,16 @@ debug: $(EXE) ## build with debug enabled
 
 .PHONY: debugrun
 debugrun: debug run ## run debug version
+
+.PHONY: style
+style: $(STYLED)
+
+# sed is needed to fix string literals
+$(DEPDIR)/%.styled: $(SRCDIR)/%
+	@$(COLOR)
+	echo "Styling $(SRCDIR)/$*"
+	@$(RESET)
+	uncrustify -c $(SRCDIR)/.uncrustify.cfg --replace --no-backup $(SRCDIR)/$* && sed -i -e 's/\([uUL]\)\s\+\(['"'"'"]\)/\1\2/g' $(SRCDIR)/$* && touch $@
 
 # link
 $(EXE): $(OBJ)
@@ -153,6 +169,7 @@ $(DEPDIR)/%.cpp.d: $(SRCDIR)/%.cpp
 # depend on directory
 $(OBJ): | $(OBJDIR)
 $(DEP): | $(DEPDIR)
+$(STYLED): | $(DEPDIR)
 
 # create directory
 $(OBJDIR):
@@ -185,6 +202,7 @@ ifneq ($(wildcard $(OBJDIR)),)
 endif
 ifneq ($(wildcard $(DEPDIR)),)
 	-$(RM) $(DEP)
+	-$(RM) $(STYLED)
 	-$(RMDIR) $(DEPDIR)
 endif
 

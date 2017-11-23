@@ -7,7 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### Added
-- Initial stuff: `Makefile`, `.editorconfig`, `.indent.pro`, `.gitignore`
+- Editing and formatting stuff `.editorconfig`, `.indent.pro`, `.uncrustify.cfg`.
+- Initial stuff: `Makefile`, `.gitignore`.
 
 <!---
 help:

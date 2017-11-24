@@ -118,12 +118,12 @@ debugrun: debug run ## run debug version
 .PHONY: style
 style: $(STYLED)
 
-# sed is needed to fix string literals
 $(DEPDIR)/%.styled: $(SRCDIR)/%
 	@$(COLOR)
 	echo "Styling $(SRCDIR)/$*"
 	@$(RESET)
-	uncrustify -c $(SRCDIR)/.uncrustify.cfg --replace --no-backup $(SRCDIR)/$* && sed -i -e 's/\([uUL]\)\s\+\(['"'"'"]\)/\1\2/g' $(SRCDIR)/$* && touch $@
+	# sed is needed to fix string literals (uncrustify bug: https://github.com/uncrustify/uncrustify/issues/945)
+	uncrustify -c .uncrustify.cfg --replace --no-backup $(SRCDIR)/$* && sed -i -e 's/\([uUL]\)\s\+\(['"'"'"]\)/\1\2/g' $(SRCDIR)/$* && touch $@
 
 # link
 $(EXE): $(OBJ)
@@ -132,38 +132,42 @@ $(EXE): $(OBJ)
 	$(RESET)
 	$(CC) -Wl,--as-needed -o $@ $(OBJ) $(LDFLAGS)
 
+# create binary blobs for other files
+$(filter-out %.c.o %.cpp.o,$(OBJ)): $(OBJDIR)/%.o: $(SRCDIR)/%
+	@$(COLOR)
+	echo "Other file $(SRCDIR)/$* -> $@"
+	@$(RESET)
+	echo "$$INCBIN" | sed -e 's/@sym@/$(subst .,_,$*)/' -e 's/@file@/$</' | gcc -x assembler-with-cpp - -c -o $@
+
 # compile
 $(OBJDIR)/%.c.o: $(DEPDIR)/%.c.d
 	@$(COLOR)
-	echo "Compile $(SRCDIR)/$*.c -> $(OBJDIR)/$*.c.o"
+	echo "Compile $(SRCDIR)/$*.c -> $@"
 	@$(RESET)
 	$(CC) $(CFLAGS) -c -o $@ $(SRCDIR)/$*.c
 
 # compile
 $(OBJDIR)/%.cpp.o: $(DEPDIR)/%.cpp.d
 	@$(COLOR)
-	echo "Compile $(SRCDIR)/$*.cpp -> $(OBJDIR)/$*.cpp.o"
+	echo "Compile $(SRCDIR)/$*.cpp -> $@"
 	@$(RESET)
 	$(CXX) $(CXXFLAGS) -c -o $@ $(SRCDIR)/$*.cpp
 
 # build dependecies list
 $(DEPDIR)/%.c.d: $(SRCDIR)/%.c
 	@$(COLOR)
-	echo "Dependencies $(SRCDIR)/$*.c -> $(DEPDIR)/$*.c.d"
+	echo "Generating dependencies $(SRCDIR)/$*.c -> $@"
 	@$(RESET)
-	$(CC) $(DEPFLAGS) -MM -MT '$$(OBJDIR)/$*.c.o' -MF $@ $<
-	sed -i 's,^\([^:]\+.o\):,\1 $$(DEPDIR)/$*.c.d:,' $@
+	$(CC) $(DEPFLAGS) -MM -MT '$$(OBJDIR)/$*.c.o' $< | sed 's,^\([^:]\+.o\):,\1 $$(DEPDIR)/$*.c.d:,' > $@
 
 # build dependecies list
 $(DEPDIR)/%.cpp.d: $(SRCDIR)/%.cpp
 	@$(COLOR)
-	echo "Dependencies $(SRCDIR)/$*.cpp -> $(DEPDIR)/$*.cpp.d"
-	echo "Dependencies $(SRCDIR)/$*.cpp -> $@"
+	echo "Generating dependencies $(SRCDIR)/$*.cpp -> $@"
 	@$(RESET)
-	$(CXX) $(DEPFLAGS) -MM -MT '$$(OBJDIR)/$*.cpp.o' -MF $@ $<
-	sed -i 's,^\([^:]\+.o\):,\1 $$(DEPDIR)/$*.c.d:,' $@
+	$(CXX) $(DEPFLAGS) -MM -MT '$$(OBJDIR)/$*.cpp.o' $< | sed 's,^\([^:]\+.o\):,\1 $$(DEPDIR)/$*.cpp.d:,' > $@
 
-# include dependencies
+# include generated dependencies
 -include $(wildcard $(DEP))
 
 # depend on directory
@@ -178,13 +182,6 @@ $(OBJDIR):
 # create directory
 $(DEPDIR):
 	-$(MKDIR) $(DEPDIR)
-
-# create binary blobs for other files
-$(OBJDIR)/%.o: $(SRCDIR)/%
-	@$(COLOR)
-	echo "Other file $(SRCDIR)/$* -> $(OBJDIR)/$*.o"
-	@$(RESET)
-	echo "$$INCBIN" | sed -e 's/@sym@/$(subst .,_,$*)/' -e 's/@file@/$</' | gcc -x assembler-with-cpp - -c -o $@
 
 # delete stuff
 .PHONY: clean
